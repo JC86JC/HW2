@@ -67,18 +67,23 @@ With the transformation the scatter plots seem more readable. From pairwise plot
 #### 3.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?
 
 ```{r}
-fmodel = lm(ModernC ~ Change + PPgdp + Frate + Pop + Fertility + Purban, data = UN3)
+fmodel = lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility + Purban, data = UN)
 summary(fmodel)
-par(mfrow = c(2,2))
-plot(fmodel)
 ```
 
 From the R output, 85 observations are deleted from the model fitting process due to missingness, so in total we used 125 observations.
 
+
+```{r}
+par(mfrow = c(2,2))
+plot(fmodel)
+```
+
+
 4. Examine added variable plots `car::avPlot` or `car::avPlots`  for your model above. Are there any plots that suggest that transformations are needed for any of the terms in the model? Describe. Is it likely that any of the localities are influential for any of the terms?  Which localities?  Which terms?  
 
 ```{r}
-
+car::avPlots(lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility + Purban, data = UN))
 ```
 
 5.  Using the multivariate BoxCox `car::powerTransform`  find appropriate transformations of the response and predictor variables  for  the linear model.  If any predictors are negative, you may need to transform so that they are non-negative.  Summarize the resulting transformations.
@@ -131,7 +136,7 @@ From the R output, 85 observations are deleted from the model fitting process du
 
     
 
-11. Exercise 9.12 from ALR
+### 11. Exercise 9.12 from ALR
 
 Using  $X^TX = X^T_{(i)}X_{(i)} + x_i x_i^T$ where the subscript $(i)$ means without the ith case, show that 
 
@@ -141,7 +146,55 @@ $$
 
 where $h_{ii}$ is the $i$th diagonal element of $H = X(X^TX)^{-1}X^T$ using direct multiplication and simplify in terms of_ $h_{ii}$.
 
-12. Exercise 9.13 from ALR.   Using the above, show
+**Solution**:  
+We want to show $( X^T_{(i)}X_{(i)})^{-1} = (X^TX)^{-1} + \frac{(X^TX)^{-1}x_ix_i^T  (X^TX)^{-1}}{1 - h_{ii}}$.  
+Multiply the above equation by $X^T_{(i)}X_{(i)}$ on the LHS and $X^TX - x_i x_i^T$ on the RHS, since $X^TX = X^T_{(i)}X_{(i)} + x_i x_i^T$, the equation we want to prove becomes
+$$\begin{aligned}
+( X^T_{(i)}X_{(i)})^{-1} * ( X^T_{(i)}X_{(i)}) &=\left((X^TX)^{-1} + \frac{(X^TX)^{-1}x_ix_i^T  (X^TX)^{-1}}{1 - h_{ii}}\right)*\left(X^TX - x_i x_i^T\right)\\
+&=  (X^TX)^{-1}*\left(X^TX - x_i x_i^T\right) + \frac{(X^TX)^{-1}x_ix_i^T (X^TX)^{-1}}{1 - h_{ii}} *\left(X^TX - x_i x_i^T\right)\\
+&= I - (X^TX)^{-1}x_ix_i^T + \frac{(X^TX)^{-1}x_ix_i^T}{1 - h_{ii}} - \frac{(X^TX)^{-1}x_ix_i^T (X^TX)^{-1}*x_ix_i^T}{1 - h_{ii}}
+\end{aligned}$$.  
 
-$$\hat{\beta}_{(i)} = \hat{\beta} -  \frac{(X^TX)^{-1}x_i e_i}{1 - h_{ii}}$$
-13. (optional)  Prove that the intercept in the added variable scatter plot will always be zero.  _Hint:  use the fact that if $H$ is the projection matrix for $X$ which contains a column of ones, then $1_n^T (I - H) = 0$ or $(I - H) 1_n = 0$.  Use this to show that the sample mean of residuals will always be zero if there is an intercept._
+Since $h_{ii}$ is the $i$th diagonal element of $H = X(X^TX)^{-1}X^T$, we have $h_{ii} = x_i^T(X^TX)^{-1}x_i$, and the equation we want to show can be simplified as
+
+$$\begin{aligned}
+I &= I - (X^TX)^{-1}x_ix_i^T + \frac{(X^TX)^{-1}x_ix_i^T}{1 - h_{ii}} - \frac{(X^TX)^{-1}x_i\left(x_i^T (X^TX)^{-1}x_i\right)x_i^T}{1 - h_{ii}} \\
+&= I - (X^TX)^{-1}x_ix_i^T + \frac{(X^TX)^{-1}x_ix_i^T}{1 - h_{ii}} - \frac{(X^TX)^{-1}x_i*h_{ii}*x_i^T}{1 - h_{ii}}\\
+&= I - \frac{(X^TX)^{-1}x_ix_i^T}{1 - h_{ii}} * \left(1-h_{ii} -1 + h_{ii}\right)\\
+& = I
+\end{aligned}$$
+
+which is obvious. Thus, $( X^T_{(i)}X_{(i)})^{-1} = (X^TX)^{-1} + \frac{(X^TX)^{-1}x_ix_i^T  (X^TX)^{-1}}{1 - h_{ii}}$.
+
+
+
+### 12. Exercise 9.13 from ALR.   Using the above, show
+
+$$\hat{\beta}_{(i)} = \hat{\beta} -  \frac{(X^TX)^{-1}x_i  e_i}{1 - h_{ii}}$$
+
+**Solution**:  
+
+With case i omitting, we have the OLS estimate for $\beta$ as $\hat\beta_{(i)} =  (X^T_{(i)}X_{(i)})^{-1} * X_{(i)}^TY_{(i)} $.  
+By using the result from Question 11, the estimate can be simplified as the following:
+$$\begin{aligned}
+\hat\beta_{(i)} & = (X^T_{(i)}X_{(i)})^{-1} * X_{(i)}^TY_{(i)}\\
+&=  (X^T_{(i)}X_{(i)})^{-1} * (X^TY - x_iy_i)\\
+&= (X^T_{(i)}X_{(i)})^{-1}*X^TY - (X^T_{(i)}X_{(i)})^{-1}*x_iy_i\\
+&= (X^TX)^{-1}*X^TY + \frac{(X^TX)^{-1}x_ix_i^T  (X^TX)^{-1}*X^TY}{1 - h_{ii}} - (X^TX)^{-1}x_iy_i + \frac{(X^TX)^{-1}x_ix_i^T  (X^TX)^{-1}x_iy_i}{1 - h_{ii}}\\
+& = \hat\beta + \frac{(X^TX)^{-1}x_ix_i^T \hat\beta}{1 - h_{ii}} - \frac{(X^TX)^{-1}(1-h_{ii})x_iy_i}{1-h_{ii}} + \frac{(X^TX)^{-1}x_ih_{ii}y_i}{1 - h_{ii}}\\
+&= \hat\beta + \frac{(X^TX)^{-1}x_i\left(x_i^T \hat\beta-y_i\right)}{1 - h_{ii}}\\
+&= \hat\beta - \frac{(X^TX)^{-1}x_ie_i}{1 - h_{ii}}
+\end{aligned}$$
+
+
+### 13. (optional)  Prove that the intercept in the added variable scatter plot will always be zero.  
+
+Hint:  use the fact that if $H$ is the projection matrix for $X$ which contains a column of ones, then $1_n^T (I - H) = 0$ or $(I - H) 1_n = 0$.  Use this to show that the sample mean of residuals will always be zero if there is an intercept.
+
+
+
+
+
+
+
+
