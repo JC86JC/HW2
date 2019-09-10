@@ -38,25 +38,29 @@ library(dplyr)
 
 ```{r}
 summary(UN3)
+UN3 = na.omit(UN3)
 ```
 Judging by the no. of NA's in the above output, ModernC, Change, PPgdp, Frate, Pop and Fertility in total 6 variables have missing data. Among them, the data-missing problem is particularly serious for ModernC and Frate variables, which have 58 and 43 missing values out of 210 respectively.
 Based on the data structure and dataset description, all of these variables should be considered as quantitative.
+Other than Change, all variables are strictly greater than 0.
+
 
 #### 2. Investigate the predictors graphically, using scatterplots or other tools of your choice. Create some plots highlighting the relationships among the predictors. Comment on your findings regarding trying to predict `ModernC` from the other variables.  Are there potential outliers, nonlinear relationships or transformations that appear to be needed based on your graphical EDA?
 
 ```{r message=FALSE, warning=FALSE, fig.width=10, fig.height=10}
-ggpairs(UN3, lower = list(continuos = 'smooth'))
+ggpairs(UN3) + 
+  labs(caption = 'Plot 1: scatter plot for the UN3 data, untransformed')
 
 
 ```
 
 
-Besides, from the above plot we can see that the distributions of PPgdp and Pop are particularly right skewed, resulting in difficulties in model fitting and interpretations. Thus, we consider transfrom it into log(PPgdp) and lop(Pop) to see whether there will be any improvements.
+Besides, from the above plot we can see that the distributions of PPgdp and Pop are particularly right skewed, resulting in difficulties in model fitting and interpretations. Besides, the range of these variables is also quite large. Thus, we should consider transfromation on these two predictors. On the other hand, the range for change and Fertility is rather small, indicating that transformation on these predictors might be of little use.
 
 ```{r message= FALSE, warning= FALSE, fig.width=8, fig.height=8}
-UN <- UN3 %>%
-  mutate(logPop = log(Pop), logPPgdp = log(PPgdp))
-ggpairs(data = UN, columns = c(1,2,4,6,7,8,9))
+#UN <- UN3 %>%
+#  mutate(logPop = log(Pop), logPPgdp = log(PPgdp))
+#ggpairs(data = UN, columns = c(1,2,4,6,7,8,9))
 ```
 
 With the transformation the scatter plots seem more readable. From pairwise plots, we can easily recognise some positive relationships between ModernC vs. logPPgdp and Purban, and some negative relationships between ModernC vs. Change and Fertility. Among predictors, there are also some correlations, except from variables Frate and logPop, which have almost no correlations with the other predictors.
@@ -67,14 +71,14 @@ With the transformation the scatter plots seem more readable. From pairwise plot
 #### 3.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?
 
 ```{r}
-fmodel = lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility + Purban, data = UN)
+fmodel = lm(ModernC ~ Change + PPgdp + Frate + Pop + Fertility + Purban, data = UN3)
 summary(fmodel)
 ```
 
 From the R output, 85 observations are deleted from the model fitting process due to missingness, so in total we used 125 observations.
 
 
-```{r}
+```{r fig.width=8, fig.height=8}
 par(mfrow = c(2,2))
 plot(fmodel)
 ```
@@ -82,16 +86,23 @@ plot(fmodel)
 
 4. Examine added variable plots `car::avPlot` or `car::avPlots`  for your model above. Are there any plots that suggest that transformations are needed for any of the terms in the model? Describe. Is it likely that any of the localities are influential for any of the terms?  Which localities?  Which terms?  
 
-```{r}
-car::avPlots(lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility + Purban, data = UN))
+```{r fig.width=8, fig.height=8}
+car::avPlots(lm(ModernC ~ Change + PPgdp + Frate + Pop + Fertility + Purban, data = UN3))
 ```
 
 5.  Using the multivariate BoxCox `car::powerTransform`  find appropriate transformations of the response and predictor variables  for  the linear model.  If any predictors are negative, you may need to transform so that they are non-negative.  Summarize the resulting transformations.
 
-
 ```{r}
+predictor_transform = car::powerTransform(object = cbind(UN3[2], UN3[3],UN3[4],UN3[5],UN3[6],UN3[7]), family = 'bcnPower')
+predictor_transform
 
 ```
+
+
+```{r}
+testTransform(predictor_transform, lambda = c(1,0,1,0,0,1))
+```
+
 
 6. Given the selected transformations of the predictors, verify the transformation of the response using `MASS::boxcox` or `car::boxCox` and justify.  Do you get the same transformation if you used `car::powerTransform` above? Do you get the same transformation for the response if you do not transform any of the predictors?  Discuss briefly the findings.
 
