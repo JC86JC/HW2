@@ -119,12 +119,12 @@ Then we try to test whether the suggested $\lambda$ are actually nice powers. Th
 UN = UN3 %>%
   mutate(Change = exp(Change))
 mul_transform = car::powerTransform(UN, family = 'bcPower')
-str(summary(mul_transform, test))
+summary(mul_transform, test)
 ```
 
 
 ```{r}
-testTransform(mul_transform,lambda = c(1,0,-0.16,1,0,0,1))
+testTransform(mul_transform,lambda = c(1,0,0,1,0,0,1))
 ```
 
 
@@ -132,10 +132,10 @@ testTransform(mul_transform,lambda = c(1,0,-0.16,1,0,0,1))
 $~$
 To verify the transformation acquired in the previous question, in this exercise we use `boxCox` function to transform the response variable once again using the transformed predictors.  
 The first plot in **Figure 5** shows the result of the transformation. As is shown, $\lambda = 1$ is well within the 95% confidence interval of the estimated $\lambda$ that maximises the log-likelihood.
-If we apply the function to `ModernC` without transformed predictors, we will get the second plot, from which $\lambda = 1$ is hardly included in the 95% CI. The difference in these two results is caused by the fact that without linearly related predictors, 
+If we apply the function to `ModernC` without transformed predictors, we will get the second plot, from which $\lambda = 1$ is hardly included in the 95% CI. The difference in these two results is caused by the fact that the predictors are not yet tranformed. 
 ```{r fig.width=8, fig.height=6, fig.cap='BoxCox transformation of ModernC'}
 UN1 = UN %>%
-  mutate(Change = log(Change), tran_PPgdp = PPgdp^(-0.16), logPop = log(Pop), logFertility = log(Fertility), PPgdp = NULL, Pop = NULL, Fertility = NULL)
+  mutate(Change = log(Change), log_PPgdp = log(PPgdp), logPop = log(Pop), logFertility = log(Fertility), PPgdp = NULL, Pop = NULL, Fertility = NULL)
 
 model1 = lm(ModernC~., data = UN1)
 boxCox(model1)
@@ -188,9 +188,11 @@ rownames(UN1)[cooks.distance(transmodel)>0.5]
 #### 9. For your final model, provide summaries of coefficients with 95% confidence intervals in a nice table with interpretations of each coefficient. These should be in terms of the original units! 
 
 
+
 ```{r}
 interval = confint(transmodel)
-kable(cbind(transmodel$coefficients, interval), col.names = c('Estimate','2.5%','97.5%'))
+kable(cbind(transmodel$coefficients, interval), digits = 3,col.names = c('Estimate','2.5%','97.5%'))
+interval_ori = interval
 ```
 
 
